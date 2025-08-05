@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estructuras de Proyecto de Investigación - Mapa Mental Galáctico</title>
+    <!-- Tailwind CSS CDN para estilos responsivos y modernos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos personalizados para la fuente Inter y el fondo */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a; /* Fondo muy oscuro para el contraste neón */
+            color: #e0e0e0; /* Color de texto general claro */
+            overflow-x: hidden; /* Evita el scroll horizontal */
+        }
+
+        /* Estilos para el efecto neón */
+        .neon-glow {
+            text-shadow: 0 0 5px #fff, 0 0 10px #0ff, 0 0 15px #0ff, 0 0 20px #0ff, 0 0 25px #0ff, 0 0 30px #0ff;
+            box-shadow: 0 0 5px #0ff, 0 0 10px #0ff, 0 0 15px #0ff, 0 0 20px #0ff, 0 0 25px #0ff, 0 0 30px #0ff;
+        }
+
+        .neon-node {
+            background-color: rgba(0, 255, 255, 0.1); /* Cian neón semitransparente */
+            border: 2px solid #0ff; /* Borde cian neón */
+            color: #fff; /* Texto blanco brillante */
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+            position: absolute; /* Para posicionamiento de mapa mental */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: bold;
+            padding: 1rem;
+            border-radius: 9999px; /* Forma circular */
+            box-shadow: 0 0 8px #0ff, 0 0 15px #0ff, 0 0 25px #0ff; /* Sombra de brillo */
+            min-width: 120px; /* Tamaño mínimo para nodos */
+            min-height: 120px;
+            font-size: 0.9rem; /* Ajuste de fuente para nodos */
+            line-height: 1.2;
+        }
+
+        .neon-node:hover {
+            background-color: rgba(0, 255, 255, 0.2);
+            transform: scale(1.08); /* Efecto de crecimiento al pasar el ratón */
+            box-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff, 0 0 40px #0ff;
+        }
+
+        /* Colores de resaltado */
+        .neon-node.selected {
+            background-color: rgba(255, 255, 0, 0.15); /* Amarillo neón semitransparente */
+            border-color: #ffff00; /* Borde amarillo neón */
+            box-shadow: 0 0 10px #ffff00, 0 0 20px #ffff00, 0 0 30px #ffff00;
+        }
+
+        .neon-node.connected {
+            background-color: rgba(0, 255, 0, 0.15); /* Verde neón semitransparente */
+            border-color: #00ff00; /* Borde verde neón */
+            box-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00;
+        }
+
+        /* Estilo para las líneas SVG de conexión */
+        .connection-line {
+            stroke: #ff00ff; /* Magenta neón para las líneas */
+            stroke-width: 2;
+            opacity: 0.7;
+            transition: stroke-width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+
+        /* Contenedor principal para el mapa mental */
+        .mind-map-container {
+            position: relative;
+            width: 100%;
+            height: 600px; /* Altura fija para el área del mapa mental */
+            margin: 0 auto;
+            overflow: hidden; /* Oculta cualquier desbordamiento de nodos */
+            background-color: transparent; /* El canvas se encargará del fondo */
+            border-radius: 1rem;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5); /* Borde de brillo para el contenedor */
+        }
+
+        /* Estilo para el canvas de fondo */
+        #galaxy-waterfall-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0; /* Asegura que esté detrás de los nodos */
+            width: 100%;
+            height: 100%;
+            background-color: #000; /* Fondo negro para el canvas */
+        }
+
+        /* Contenedor de nodos sobre el canvas */
+        #mind-map-nodes-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1; /* Asegura que esté sobre el canvas */
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Estilo para el SVG de las líneas */
+        #connections-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* Detrás de los nodos, pero sobre el canvas */
+            pointer-events: none; /* Permite clics a través del SVG */
+        }
+
+        /* Sección de detalles del nodo */
+        #node-details {
+            min-height: 150px;
+            background-color: rgba(10, 10, 10, 0.8); /* Fondo oscuro semitransparente */
+            border: 2px solid #0ff;
+            color: #e0e0e0;
+            box-shadow: 0 0 10px #0ff;
+        }
+
+        #details-title {
+            color: #00ffff; /* Cian neón para el título de detalles */
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        #details-citation {
+            color: #9999ff; /* Púrpura suave para las citas */
+        }
+
+        /* Referencias y pie de página */
+        .references-section, footer {
+            background-color: rgba(10, 10, 10, 0.7);
+            border: 1px solid #0ff;
+            box-shadow: 0 0 8px #0ff;
+            color: #e0e0e0;
+        }
+
+        .references-section h2 {
+            color: #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        .references-section ul strong {
+            color: #ff00ff; /* Magenta neón para nombres de autores */
+        }
+
+        /* Estilo para el botón de expansión */
+        .action-button {
+            background-color: #ff00ff; /* Magenta neón */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 0 8px #ff00ff, 0 0 15px #ff00ff;
+            margin-right: 1rem; /* Espacio entre botones */
+        }
+
+        .action-button:hover {
+            background-color: #cc00cc;
+            transform: scale(1.05);
+            box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #00ffff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+    <div class="container mx-auto p-4 max-w-5xl bg-transparent rounded-xl">
+        <!-- Título principal de la página -->
+        <h1 class="text-4xl font-extrabold text-center text-white mb-6 mt-4 rounded-lg p-2 neon-glow">
+            Estructuras de Proyecto de Investigación
+        </h1>
+        <!-- Descripción introductoria del propósito del documento -->
+        <p class="text-gray-300 text-lg mb-8 text-center leading-relaxed">
+            Este recurso interactivo presenta los componentes fundamentales de un proyecto de investigación, visualizados como un <strong class="text-blue-400">mapa mental galáctico</strong>. Cada <span class="text-cyan-400 font-semibold">"nodo"</span> representa una etapa o elemento secuencial y esquemático. Al hacer clic en un nodo, se revelará su descripción detallada y su relevancia metodológica, destacando sus interconexiones conceptuales en un universo de neón y estrellas.
+        </p>
+
+        <!-- Contenedor principal para el mapa mental con canvas de fondo -->
+        <div class="mind-map-container relative">
+            <canvas id="galaxy-waterfall-canvas"></canvas>
+            <div id="mind-map-nodes-container">
+                <!-- SVG para dibujar las líneas de conexión -->
+                <svg id="connections-svg"></svg>
+                <!-- Los nodos se insertarán aquí dinámicamente mediante JavaScript -->
+            </div>
+        </div>
+
+        <!-- Sección para mostrar los detalles del nodo seleccionado -->
+        <div id="node-details" class="mt-8 p-6 rounded-lg shadow-lg hidden border-l-4 border-cyan-600 animate-fade-in">
+            <h2 id="details-title" class="text-2xl font-bold mb-3"></h2>
+            <p id="details-content" class="leading-relaxed mb-4"></p>
+            <p id="details-citation" class="text-sm italic border-t pt-3 border-gray-700"></p>
+            <!-- Los botones de expansión y sugerencia se han eliminado -->
+        </div>
+
+        <!-- Sección de referencias bibliográficas clave -->
+        <div class="references-section mt-12 p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold mb-4 border-b-2 pb-2 border-cyan-500">Referencias Bibliográficas</h2>
+            <ul class="list-disc list-inside space-y-2">
+                <li><strong class="font-semibold">Sampieri, R. H., Collado, C. F., & Lucio, P. B.</strong> (2018). <i>Metodología de la investigación: Las rutas cuantitativa, cualitativa y mixta</i>. McGraw-Hill Interamericana.</li>
+                <li><strong class="font-semibold">Bauman, Z.</strong> (2000). <i>Modernidad líquida</i>. Fondo de Cultura Económica.</li>
+                <li><strong class="font-semibold">Jiménez Hinojos, Z.</strong> (2025). <i>Análisis de bases de datos: Actividad 1</i>. Documento interno, Universidad Abierta y a Distancia de México.</li>
+                <li><strong class="font-semibold">Jiménez Ramos, D.</strong> (2019). <i>Geo-grafías comunitarias: Mapeo comunitario y cartografías sociales</i>.</li>
+                <li><strong class="font-semibold">Restrepo, E.</strong> (2015). <i>Elaboración de un proyecto de investigación</i>.</li>
+                <li><strong class="font-semibold">Secretaría de Educación Pública.</strong> (2021). <i>Guía para la elaboración del protocolo de investigación</i>. Subsecretaría de Educación Media Superior.</li>
+            </ul>
+        </div>
+
+        <!-- Pie de página con créditos -->
+        <footer class="mt-12 text-center text-gray-400 text-sm border-t pt-6 border-gray-700">
+            <p>Desarrollado como parte de la asignatura de Metodologia de investigacion U2: Lic. Políticas y Proyectos Sociales.</p>
+            <p>Docente Sonia Cervantes Pedraza<p>
+            <p>Zayra Jimenez Hinojos - UNADM</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mindMapNodesContainer = document.getElementById('mind-map-nodes-container');
+            const nodeDetails = document.getElementById('node-details');
+            const detailsTitle = document.getElementById('details-title');
+            const detailsContent = document.getElementById('details-content');
+            const detailsCitation = document.getElementById('details-citation');
+            const connectionsSvg = document.getElementById('connections-svg');
+            const canvas = document.getElementById('galaxy-waterfall-canvas');
+            const ctx = canvas.getContext('2d');
+            // Los botones y spinners de Gemini se han eliminado de aquí
+
+            let currentStageId = null; // Para saber qué nodo está seleccionado actualmente
+
+            // Ajusta el tamaño del canvas para que sea responsivo
+            function resizeCanvas() {
+                canvas.width = mindMapNodesContainer.offsetWidth;
+                canvas.height = mindMapNodesContainer.offsetHeight;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // Coordenadas de los nodos para el mapa mental (ajustadas para el tamaño del contenedor)
+            const nodePositions = {
+                'idea': { x: '50%', y: '10%' },
+                'problema': { x: '30%', y: '25%' },
+                'preguntas': { x: '70%', y: '25%' },
+                'objetivos': { x: '50%', y: '40%' },
+                'justificacion': { x: '20%', y: '40%' },
+                'marco-teorico': { x: '80%', y: '40%' },
+                'hipotesis': { x: '70%', y: '55%' },
+                'metodologia': { x: '50%', y: '60%' },
+                'recoleccion-datos': { x: '30%', y: '75%' },
+                'analisis-datos': { x: '70%', y: '75%' },
+                'resultados': { x: '50%', y: '85%' },
+                'conclusiones': { x: '30%', y: '95%' },
+                'bibliografia': { x: '70%', y: '95%' }
+            };
+
+            // Definición de las etapas de un proyecto de investigación con sus propiedades
+            const researchStages = [
+                { id: 'idea', name: 'Idea de Investigación', description: 'Constituye el origen de la investigación. Emerge de la observación, la experiencia, la lectura o la reflexión. Requiere claridad, relevancia y factibilidad para su desarrollo. La formulación inicial de una idea establece el fundamento conceptual del estudio, dirigiendo la posterior delimitación del problema y la definición de los objetivos.', citation: '', connections: ['problema', 'preguntas'] },
+                { id: 'problema', name: 'Planteamiento del Problema', description: 'Implica la descripción clara, precisa y concisa de la situación o fenómeno a investigar. Abarca la delimitación del objeto de estudio, el espacio y el tiempo. Una formulación adecuada establece una base sólida para un estudio riguroso, orientando el proceso metodológico completo. Este paso es crucial para la coherencia interna del proyecto.', citation: 'Hernández Sampieri, Fernández-Collado y Baptista (2014) afirman: problema de investigación bien planteado fundamenta estudio exitoso; orienta proceso metodológico.', connections: ['idea', 'objetivos', 'justificacion', 'preguntas'] },
+                { id: 'preguntas', name: 'Preguntas de Investigación', description: 'Representan interrogantes específicas; dirigen el estudio; buscan respuesta mediante investigación. Requieren coherencia con el problema y los objetivos. Su formulación precisa permite enfocar la recolección y análisis de datos, asegurando la pertinencia de los resultados obtenidos.', citation: 'Preguntas de investigación articulan conocimiento buscado por investigador (Hernández Sampieri et al., 2014).', connections: ['problema', 'objetivos'] },
+                { id: 'objetivos', name: 'Objetivos de Investigación', description: 'Definen logros del estudio. Distinguen objetivo general (propósito central) y objetivos específicos (pasos intermedios). Exigen claridad, mensurabilidad, alcanzabilidad. Su correcta formulación garantiza la dirección del proyecto y la evaluación de su éxito, alineándose con las guías metodológicas institucionales.', citation: 'Hernández Sampieri et al. (2014) enfatizan: objetivos congruentes con preguntas de investigación; delimitan alcance de estudio (Secretaría de Educación Pública, 2021).', connections: ['problema', 'preguntas', 'justificacion', 'metodologia'] },
+                { id: 'justificacion', name: 'Justificación', description: 'Sustenta la importancia y relevancia de estudio. Explica necesidad de ejecución; detalla aportes significativos a sociedad, conocimiento científico, solución de problema práctico. Alinea con fortalecimiento de estructura de proyecto (Restrepo, 2015). Este componente es vital para obtener la aprobación y el apoyo para la investigación.', citation: 'Justificación valida pertinencia de estudio ante comunidad académica, social; alinea con fortalecimiento de estructura de proyecto (Restrepo, 2015).', connections: ['problema', 'objetivos'] },
+                { id: 'marco-teorico', name: 'Marco Teórico', description: 'Implica revisión, detección, obtención, consulta de literatura pertinente. Su función: sustentar, ampliar, precisar, refutar hipótesis, ideas de investigación. Provee contexto conceptual, empírico. La integración de conceptos como "Geo-grafías Comunitarias" (Jiménez Ramos, 2019) permite un análisis holístico en fenómenos complejos como la violencia vicaria, enriqueciendo la perspectiva analítica.', citation: 'Marco teórico contextualiza estudio; evita duplicaciones; guía formulación de hipótesis (Hernández Sampieri et al., 2014). Bauman (2000) ofrece perspectivas sociológicas; enriquece marco teórico en investigación social.', connections: ['problema', 'hipotesis', 'metodologia'] },
+                { id: 'hipotesis', name: 'Hipótesis (Opcional)', description: 'Representan suposiciones, proposiciones tentativas sobre relación entre variables. Formulan para someter a prueba; buscan aceptación, rechazo mediante recolección, análisis de datos. Constituyen predicciones verificables que guían la investigación empírica, especialmente en enfoques cuantitativos.', citation: 'Hipótesis derivan directamente de planteamiento de problema, marco teórico. Esenciales en investigación cuantitativa, explicativa (Hernández Sampieri et al., 2014).', connections: ['marco-teorico', 'metodologia'] },
+                { id: 'metodologia', name: 'Metodología', description: 'Detalla ejecución de investigación. Abarca tipo, diseño de estudio; enfoque (cuantitativo, cualitativo, mixto); alcance (exploratorio, descriptivo, correlacional, explicativo); población; muestra; técnicas, instrumentos de recolección de datos; plan de análisis. Metodología rigurosa minimiza sesgos; asegura validez interna (Kerlinger & Lee, 2002). El diseño mixto y el uso de talleres de mapeo social y narrativas visuales constituyeron elementos esenciales en el estudio de violencia vicaria (Jiménez Hinojos, 2025), permitiendo abordar limitaciones de acceso y fortalecer la investigación participativa. Desde una perspectiva crítica, la metodología garantiza conocimiento transparente, replicable (Guba & Lincoln, 1994; Bunge, 2000).', citation: 'Hernández Sampieri et al. (2014) detallan diseños metodológicos; implican validez, confiabilidad de resultados. Perspectiva crítica: metodología garantiza conocimiento transparente, replicable (Guba & Lincoln, 1994; Bunge, 2000).', connections: ['objetivos', 'marco-teorico', 'hipotesis', 'recoleccion-datos', 'analisis-datos'] },
+                { id: 'recoleccion-datos', name: 'Recolección de Datos', description: 'Proceso de aplicación de instrumentos, técnicas seleccionadas en metodología. Obtiene información necesaria de población, muestra. Rigurosidad en etapa crucial para calidad de datos. La elección adecuada de instrumentos asegura la obtención de datos pertinentes para responder a las preguntas de investigación.', citation: 'Calidad de recolección de datos impacta directamente validez, confiabilidad de resultados de investigación (Hernández Sampieri et al., 2014).', connections: ['metodologia', 'analisis-datos'] },
+                { id: 'analisis-datos', name: 'Análisis de Datos', description: 'Implica organización, procesamiento, interpretación de datos recolectados. Utiliza técnicas estadísticas, cualitativas según enfoque de investigación. Extrae conclusiones significativas; responde preguntas de investigación. Este proceso transforma datos brutos en información interpretable, permitiendo la validación de hipótesis o la generación de nuevas teorías.', citation: 'Análisis requiere rigor, sistematicidad para responder preguntas de investigación; probar hipótesis (Hernández Sampieri et al., 2014).', connections: ['metodologia', 'recoleccion-datos', 'resultados'] },
+                { id: 'resultados', name: 'Resultados', description: 'Presentación clara, concisa de hallazgos obtenidos de análisis de datos. Muestra objetividad, sin interpretaciones. Frecuentemente incluye tablas, gráficos, descripciones narrativas. Responde directamente a preguntas de investigación. La comunicación efectiva de los resultados es fundamental para la diseminación del conocimiento.', citation: '', connections: ['analisis-datos', 'conclusiones'] },
+                { id: 'conclusiones', name: 'Conclusiones y Recomendaciones', description: 'Interpreta resultados en relación con objetivos, preguntas de investigación. Discute implicaciones teóricas, prácticas. Señala limitaciones de estudio; propone futuras líneas de investigación, acciones. El proyecto de investigación sobre violencia vicaria ejemplifica aprendizaje, desarrollo de competencias investigadoras en educación superior (Jiménez Hinojos, 2025), articulando conocimientos con compromiso social.', citation: 'Conclusiones requieren coherencia con resultados, marco teórico; ofrecen síntesis de conocimiento generado.', connections: ['resultados'] },
+                { id: 'bibliografia', name: 'Referencias Bibliográficas', description: 'Listado organizado de fuentes documentales (libros, artículos, sitios web, etc.). Incluye citas, consultas durante proceso de investigación. Sigue estilo de citación específico (ej. APA, Vancouver). La correcta citación garantiza la transparencia académica y el reconocimiento de las fuentes utilizadas.', citation: '', connections: [] }
+            ];
+
+            // Almacena los elementos de nodo HTML para fácil acceso
+            const nodeElements = {};
+
+            // Función para renderizar los nodos en el contenedor
+            function renderNodes() {
+                mindMapNodesContainer.innerHTML = ''; // Limpia nodos existentes
+                researchStages.forEach(stage => {
+                    const nodeElement = document.createElement('div');
+                    nodeElement.id = `node-${stage.id}`;
+                    nodeElement.className = 'neon-node';
+                    nodeElement.textContent = stage.name;
+                    nodeElement.dataset.stageId = stage.id;
+
+                    // Posicionamiento absoluto de los nodos
+                    nodeElement.style.left = nodePositions[stage.id].x;
+                    nodeElement.style.top = nodePositions[stage.id].y;
+                    nodeElement.style.transform = 'translate(-50%, -50%)'; // Centra el nodo
+
+                    nodeElement.addEventListener('click', () => {
+                        displayNodeDetails(stage);
+                        highlightConnections(stage);
+                        drawConnections(stage); // Dibuja las líneas SVG
+                        currentStageId = stage.id; // Guarda el ID del nodo seleccionado
+                    });
+                    mindMapNodesContainer.appendChild(nodeElement);
+                    nodeElements[stage.id] = nodeElement; // Guarda la referencia al elemento
+                });
+            }
+
+            // Función para obtener el centro de un nodo
+            function getNodeCenter(nodeId) {
+                const node = nodeElements[nodeId];
+                if (!node) return { x: 0, y: 0 };
+                const rect = node.getBoundingClientRect();
+                const containerRect = mindMapNodesContainer.getBoundingClientRect();
+                return {
+                    x: rect.left + rect.width / 2 - containerRect.left,
+                    y: rect.top + rect.height / 2 - containerRect.top
+                };
+            }
+
+            // Función para dibujar las líneas SVG entre nodos
+            function drawConnections(selectedStage) {
+                connectionsSvg.innerHTML = ''; // Limpia líneas existentes
+                const selectedCenter = getNodeCenter(selectedStage.id);
+
+                selectedStage.connections.forEach(connectedId => {
+                    const connectedCenter = getNodeCenter(connectedId);
+
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', selectedCenter.x);
+                    line.setAttribute('y1', selectedCenter.y);
+                    line.setAttribute('x2', connectedCenter.x);
+                    line.setAttribute('y2', connectedCenter.y);
+                    line.setAttribute('class', 'connection-line');
+                    connectionsSvg.appendChild(line);
+                });
+            }
+
+            // Función para mostrar los detalles de un nodo seleccionado
+            function displayNodeDetails(stage) {
+                detailsTitle.textContent = stage.name;
+                detailsContent.textContent = stage.description;
+                detailsCitation.textContent = stage.citation ? `Cita clave: ${stage.citation}` : '';
+                nodeDetails.classList.remove('hidden');
+            }
+
+            // Función para resaltar los nodos conectados y el nodo seleccionado
+            function highlightConnections(selectedStage) {
+                // Elimina todos los resaltados previos de todos los nodos
+                document.querySelectorAll('.neon-node').forEach(node => {
+                    node.classList.remove('selected', 'connected');
+                });
+
+                // Resalta el nodo seleccionado
+                const selectedNodeElement = nodeElements[selectedStage.id];
+                if (selectedNodeElement) {
+                    selectedNodeElement.classList.add('selected');
+                }
+
+                // Resalta los nodos conectados
+                selectedStage.connections.forEach(connectedId => {
+                    const connectedNodeElement = nodeElements[connectedId];
+                    if (connectedNodeElement) {
+                        connectedNodeElement.classList.add('connected');
+                    }
+                });
+            }
+
+            // --- Animación de fondo de cascada galáctica ---
+            let stars = [];
+            const numStars = 200;
+            let waterfallParticles = [];
+            const numWaterfallParticles = 50;
+
+            // Clase para las estrellas
+            class Star {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.radius = Math.random() * 1.5 + 0.5; // Tamaño de la estrella
+                    this.speed = Math.random() * 0.5 + 0.1; // Velocidad de caída
+                    this.alpha = Math.random(); // Opacidad para el parpadeo
+                    this.alphaSpeed = Math.random() * 0.02 + 0.005; // Velocidad de cambio de opacidad
+                    this.alphaDirection = 1; // Dirección del cambio de opacidad
+                }
+
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                    ctx.fill();
+                }
+
+                update() {
+                    this.y += this.speed;
+                    if (this.y > canvas.height) {
+                        this.y = 0;
+                        this.x = Math.random() * canvas.width;
+                    }
+
+                    // Efecto de parpadeo
+                    this.alpha += this.alphaSpeed * this.alphaDirection;
+                    if (this.alpha > 1 || this.alpha < 0) {
+                        this.alphaDirection *= -1;
+                    }
+                }
+            }
+
+            // Clase para las partículas de la cascada
+            class WaterfallParticle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.length = Math.random() * 20 + 10; // Longitud de la "gota"
+                    this.speed = Math.random() * 3 + 1; // Velocidad de caída
+                    this.opacity = Math.random() * 0.5 + 0.2; // Opacidad
+                    this.color = `rgba(0, 200, 255, ${this.opacity})`; // Azul cian para la cascada
+                }
+
+                draw() {
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x, this.y + this.length);
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+
+                update() {
+                    this.y += this.speed;
+                    if (this.y > canvas.height) {
+                        this.y = 0;
+                        this.x = Math.random() * canvas.width;
+                        this.length = Math.random() * 20 + 10;
+                        this.speed = Math.random() * 3 + 1;
+                        this.opacity = Math.random() * 0.5 + 0.2;
+                        this.color = `rgba(0, 200, 255, ${this.opacity})`;
+                    }
+                }
+            }
+
+            // Inicializar estrellas y partículas de cascada
+            function initBackgroundElements() {
+                stars = [];
+                waterfallParticles = [];
+                for (let i = 0; i < numStars; i++) {
+                    stars.push(new Star());
+                }
+                for (let i = 0; i < numWaterfallParticles; i++) {
+                    waterfallParticles.push(new WaterfallParticle());
+                }
+            }
+
+            // Bucle principal de animación del fondo
+            function animateBackground() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpia el canvas
+                ctx.fillStyle = '#000000'; // Asegura un fondo negro
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                stars.forEach(star => {
+                    star.update();
+                    star.draw();
+                });
+
+                waterfallParticles.forEach(particle => {
+                    particle.update();
+                    particle.draw();
+                });
+
+                requestAnimationFrame(animateBackground);
+            }
+
+            // Llama a la función para renderizar los nodos y empezar la animación al cargar la página
+            renderNodes();
+            initBackgroundElements();
+            animateBackground();
+        });
+    </script>
+</body>
+</html>
+
